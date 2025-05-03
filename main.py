@@ -3,41 +3,28 @@ from heapq import heappush, heappop
 from math import sqrt
 
 def prim(graph):
-    """
-    ### TODO:
-    Update this method to work when the graph has multiple connected components.
-    Rather than returning a single tree, return a list of trees,
-    one per component, containing the MST for each component.
-
-    Each tree is a set of (weight, node1, node2) tuples.    
-    """
-    def prim_helper(visited, frontier, tree):
-        if len(frontier) == 0:
-            return tree
-        else:
+    def prim_helper(start, visited):
+        frontier = []
+        heappush(frontier, (0, start, start))
+        tree = set()
+        while frontier:
             weight, node, parent = heappop(frontier)
             if node in visited:
-                return prim_helper(visited, frontier, tree)
-            else:
-                print('visiting', node)
-                # record this edge in the tree
-                tree.add((weight, node, parent))
-                visited.add(node)
-                for neighbor, w in graph[node]:
-                    heappush(frontier, (w, neighbor, node))    
-                    # compare with dijkstra:
-                    # heappush(frontier, (distance + weight, neighbor))                
+                continue
+            visited.add(node)
+            tree.add((weight, node, parent))
+            for neighbor, w in graph[node]:
+                if neighbor not in visited:
+                    heappush(frontier, (w, neighbor, node))
+        tree.remove((0, start, start))  # remove dummy edge
+        return tree
 
-                return prim_helper(visited, frontier, tree)
-        
-    # pick first node as source arbitrarily
-    source = list(graph.keys())[0]
-    frontier = []
-    heappush(frontier, (0, source, source))
-    visited = set()  # store the visited nodes (don't need distance anymore)
-    tree = set()
-    prim_helper(visited, frontier, tree)
-    return tree
+    visited = set()
+    trees = []
+    for node in graph:
+        if node not in visited:
+            trees.append(prim_helper(node, visited))
+    return trees
 
 def test_prim():    
     graph = {
@@ -70,19 +57,23 @@ def test_prim():
 
 def mst_from_points(points):
     """
-    Return the minimum spanning tree for a list of points, using euclidean distance 
-    as the edge weight between each pair of points.
-    See test_mst_from_points.
-
-    Params:
-      points... a list of tuples (city_name, x-coord, y-coord)
-
-    Returns:
-      a list of edges of the form (weight, node1, node2) indicating the minimum spanning
-      tree connecting the cities in the input.
+    Return the MST for a list of points using Prim's algorithm
+    and Euclidean distance as edge weights.
     """
-    ###TODO
-    pass
+    # Build the graph as an adjacency list
+    graph = defaultdict(set)
+    for i in range(len(points)):
+        for j in range(i + 1, len(points)):
+            p1 = points[i]
+            p2 = points[j]
+            dist = euclidean_distance(p1, p2)
+            graph[p1[0]].add((p2[0], dist))
+            graph[p2[0]].add((p1[0], dist))
+
+    # Run Prim’s algorithm on the graph (it's fully connected, so one component)
+    trees = prim(graph)
+    return list(trees[0])
+
 
 def euclidean_distance(p1, p2):
     return sqrt((p1[1] - p2[1])**2 + (p1[2] - p2[2])**2)
